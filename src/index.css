@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-accent: #FF4D00;
+  --color-obsidian: #0A0A0A;
+  --color-ghost: #F5F5F5;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+}
+
+.stroke-1 {
+  -webkit-text-stroke: 1px currentColor;
+}
+
+body {
+  @apply bg-obsidian text-ghost;
+}
+
+.font-display {
+  @apply font-black italic tracking-tighter;
+}
