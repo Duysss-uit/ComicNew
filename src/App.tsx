@@ -5,13 +5,17 @@
 
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
+
+import { syncAuthFromSession } from "./lib/auth";
 import { storage } from "./lib/storage";
+import { supabase } from "./lib/supabase";
 import { AuthState } from "./types";
 
 // Pages
 import LandingPage from "./pages/LandingPage";
 import HomePage from "./pages/HomePage";
 import AuthPage from "./pages/AuthPage";
+import AuthCallbackPage from "./pages/AuthCallbackPage";
 import ProfilePage from "./pages/ProfilePage";
 import UploadPage from "./pages/UploadPage";
 import ReaderPage from "./pages/ReaderPage";
@@ -27,6 +31,45 @@ export default function App() {
     storage.saveAuth(auth);
   }, [auth]);
 
+  useEffect(() => {
+    if (!supabase) {
+      return;
+    }
+
+    let isMounted = true;
+
+    const syncCurrentSession = async () => {
+      const { data } = await supabase.auth.getSession();
+
+      if (!isMounted || !data.session?.user) {
+        return;
+      }
+
+      setAuth(syncAuthFromSession(data.session));
+    };
+
+    void syncCurrentSession();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) {
+        return;
+      }
+
+      if (session?.user) {
+        setAuth(syncAuthFromSession(session));
+        return;
+      }
+
+      setAuth({ user: null, isAuthenticated: false });
+      storage.clearAuth();
+    });
+
+    return () => {
+      isMounted = false;
+      authListener.subscription.unsubscribe();
+    };
+  }, []);
+
   return (
     <Router>
       <div className="min-h-screen bg-obsidian text-ghost font-sans selection:bg-accent selection:text-obsidian">
@@ -36,6 +79,7 @@ export default function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/auth" element={<AuthPage setAuth={setAuth} />} />
+            <Route path="/auth/callback" element={<AuthCallbackPage setAuth={setAuth} />} />
             <Route 
               path="/profile" 
               element={auth.isAuthenticated ? <ProfilePage user={auth.user!} /> : <Navigate to="/auth" />} 

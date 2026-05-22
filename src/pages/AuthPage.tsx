@@ -5,10 +5,12 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { storage } from "../lib/storage";
-import { AuthState, User } from "../types";
+import { Chrome, LogIn, UserPlus, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
-import { LogIn, UserPlus, ArrowLeft } from "lucide-react";
+
+import { storage } from "../lib/storage";
+import { supabase } from "../lib/supabase";
+import { AuthState, User } from "../types";
 
 interface AuthPageProps {
   setAuth: (auth: AuthState) => void;
@@ -20,7 +22,31 @@ export default function AuthPage({ setAuth }: AuthPageProps) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const navigate = useNavigate();
+
+  const handleGoogleLogin = async () => {
+    setError("");
+
+    if (!supabase) {
+      setError("Supabase chưa được cấu hình. Hãy thêm VITE_SUPABASE_URL và VITE_SUPABASE_ANON_KEY.");
+      return;
+    }
+
+    setIsGoogleLoading(true);
+
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (oauthError) {
+      setError(oauthError.message);
+      setIsGoogleLoading(false);
+    }
+  };
 
   const handleAuth = (e: React.FormEvent) => {
     e.preventDefault();
@@ -91,6 +117,22 @@ export default function AuthPage({ setAuth }: AuthPageProps) {
           <p className="text-[10px] text-ghost/40 font-bold uppercase tracking-widest leading-relaxed">
             {isLogin ? "ĐĂNG NHẬP VÀO HỒ SƠ COMICNEW CỦA BẠN" : "TRỞ THÀNH THÀNH VIÊN CỦA CỘNG ĐỒNG SÁNG TẠO"}
           </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleGoogleLogin}
+          disabled={isGoogleLoading}
+          className="w-full mb-6 bg-white text-obsidian py-4 rounded-sm font-black uppercase tracking-widest text-xs hover:scale-[1.01] transition-transform flex items-center justify-center gap-3 disabled:opacity-60 disabled:hover:scale-100"
+        >
+          <Chrome className="w-4 h-4" />
+          {isGoogleLoading ? "Đang chuyển hướng..." : "Đăng nhập với Google"}
+        </button>
+
+        <div className="flex items-center gap-4 my-8">
+          <div className="h-px flex-1 bg-white/10" />
+          <span className="text-[9px] font-black uppercase tracking-[0.4em] text-ghost/20">Hoặc</span>
+          <div className="h-px flex-1 bg-white/10" />
         </div>
 
         <form onSubmit={handleAuth} className="space-y-8">

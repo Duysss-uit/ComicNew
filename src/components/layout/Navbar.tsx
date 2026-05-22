@@ -5,6 +5,8 @@
 
 import { Link, useNavigate } from "react-router-dom";
 import { BookOpen, User as UserIcon, Upload, LogOut, Search } from "lucide-react";
+
+import { supabase } from "../../lib/supabase";
 import { AuthState } from "../../types";
 import { storage } from "../../lib/storage";
 
@@ -16,10 +18,16 @@ interface NavbarProps {
 export default function Navbar({ auth, setAuth }: NavbarProps) {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    storage.clearAuth();
-    setAuth({ user: null, isAuthenticated: false });
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      if (supabase) {
+        await supabase.auth.signOut();
+      }
+    } finally {
+      storage.clearAuth();
+      setAuth({ user: null, isAuthenticated: false });
+      navigate("/");
+    }
   };
 
   return (
