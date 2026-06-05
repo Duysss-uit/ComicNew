@@ -2,6 +2,7 @@ import type { Session, User as SupabaseUser } from "@supabase/supabase-js";
 
 import type { AuthState, User } from "../types";
 import { storage } from "./storage";
+import { apiJson } from "./api";
 
 function getDisplayName(user: SupabaseUser) {
   const metadata = user.user_metadata ?? {};
@@ -55,4 +56,71 @@ export function syncAuthFromSession(session: Session | null): AuthState {
     user: mapSupabaseUserToAppUser(session.user),
     isAuthenticated: true,
   };
+}
+
+function getClaimValue(claims: { Type: string; Value: string }[] | undefined, types: string[]): string | undefined {
+  if (!claims) return undefined;
+  for (const type of types) {
+    const claim = claims.find(
+      (c) => c.Type === type || c.Type.endsWith(`/${type}`) || c.Type.toLowerCase() === type.toLowerCase(),
+    );
+    if (claim) return claim.Value;
+  }
+  return undefined;
+}
+
+export interface BackendUser {
+  UserId: string;
+  Email: string | null;
+  Role: string | null;
+  Claims: { Type: string; Value: string }[];
+}
+
+export function mapBackendUserToAppUser(backendUser: BackendUser): User {
+  const users = storage.getUsers();
+  const normalizedEmail = (backendUser.Email ?? "").toLowerCase();
+  const existingUser = users.find(
+    (user) => user.id === backendUser.UserId || (normalizedEmail && user.email.toLowerCase() === normalizedEmail),
+  );
+
+  const name =
+    getClaimValue(backendUser.Claims, ["full_name", "name"]) ??
+    normalizedEmail.split("@")[0] ??
+    "User";
+  const avatarUrl =
+    getClaimValue(backendUser.Claims, ["avatar_url", "picture"]) ??
+    existingUser?.avatarUrl;
+
+  const mappedUser: User = {
+    id: existingUser?.id ?? backendUser.UserId,
+    name: existingUser?.name ?? name,
+    email: backendUser.Email ?? existingUser?.email ?? "",
+    avatarUrl,
+    readingHistory: existingUser?.readingHistory ?? [],
+    publishedStories: existingUser?.publishedStories ?? [],
+  };
+
+  const nextUsers = existingUser
+    ? users.map((user) => (user.id === existingUser.id ? mappedUser : user))
+    : [mappedUser, ...users];
+
+  storage.saveUsers(nextUsers);
+
+  return mappedUser;
+}
+
+export async function verifySessionWithBackend(): Promise<AuthState> {
+  try {
+    const backendUser = await apiJson<BackendUser>("/api/auth/me");
+    if (!backendUser || !backendUser.UserId) {
+      return { user: null, isAuthenticated: false };
+    }
+    return {
+      user: mapBackendUserToAppUser(backendUser),
+      isAuthenticated: true,
+    };
+  } catch (error) {
+    console.error(error);
+    return { user: null, isAuthenticated: false };
+  }
 }

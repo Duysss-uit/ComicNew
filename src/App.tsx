@@ -6,7 +6,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 
-import { syncAuthFromSession } from "./lib/auth";
+import { verifySessionWithBackend } from "./lib/auth";
 import { storage } from "./lib/storage";
 import { supabase } from "./lib/supabase";
 import { AuthState } from "./types";
@@ -45,7 +45,13 @@ export default function App() {
         return;
       }
 
-      setAuth(syncAuthFromSession(data.session));
+      const authData = await verifySessionWithBackend();
+      if (isMounted) {
+        setAuth(authData);
+        if (!authData.isAuthenticated) {
+          storage.clearAuth();
+        }
+      }
     };
 
     void syncCurrentSession();
@@ -56,7 +62,14 @@ export default function App() {
       }
 
       if (session?.user) {
-        setAuth(syncAuthFromSession(session));
+        void verifySessionWithBackend().then((authData) => {
+          if (isMounted) {
+            setAuth(authData);
+            if (!authData.isAuthenticated) {
+              storage.clearAuth();
+            }
+          }
+        });
         return;
       }
 

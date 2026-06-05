@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { syncAuthFromSession } from "../lib/auth";
+import { verifySessionWithBackend } from "../lib/auth";
 import { supabase } from "../lib/supabase";
 import { AuthState } from "../types";
 
@@ -48,7 +48,15 @@ export default function AuthCallbackPage({ setAuth }: AuthCallbackPageProps) {
         return;
       }
 
-      const authData = syncAuthFromSession(data.session);
+      setMessage("Đang xác thực với hệ thống...");
+      const authData = await verifySessionWithBackend();
+
+      if (!authData.isAuthenticated) {
+        setHasError(true);
+        setMessage("Xác thực với hệ thống thất bại. Vui lòng thử lại.");
+        return;
+      }
+
       setAuth(authData);
       navigate("/home", { replace: true });
     };
