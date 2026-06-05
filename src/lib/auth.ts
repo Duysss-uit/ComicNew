@@ -110,17 +110,12 @@ export function mapBackendUserToAppUser(backendUser: BackendUser): User {
 }
 
 export async function verifySessionWithBackend(): Promise<AuthState> {
-  try {
-    const backendUser = await apiJson<BackendUser>("/api/auth/me");
-    if (!backendUser || !backendUser.UserId) {
-      return { user: null, isAuthenticated: false };
-    }
-    return {
-      user: mapBackendUserToAppUser(backendUser),
-      isAuthenticated: true,
-    };
-  } catch (error) {
-    console.error(error);
-    return { user: null, isAuthenticated: false };
+  const backendUser = await apiJson<BackendUser>("/api/auth/me");
+  if (!backendUser || !backendUser.UserId) {
+    throw new Error("Không nhận được thông tin người dùng từ máy chủ.");
   }
+  return {
+    user: mapBackendUserToAppUser(backendUser),
+    isAuthenticated: true,
+  };
 }

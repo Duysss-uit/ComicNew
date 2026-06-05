@@ -48,17 +48,16 @@ export default function AuthCallbackPage({ setAuth }: AuthCallbackPageProps) {
         return;
       }
 
-      setMessage("Đang xác thực với hệ thống...");
-      const authData = await verifySessionWithBackend();
+      try {
+        setMessage("Đang xác thực với hệ thống...");
+        const authData = await verifySessionWithBackend();
 
-      if (!authData.isAuthenticated) {
+        setAuth(authData);
+        navigate("/home", { replace: true });
+      } catch (err: any) {
         setHasError(true);
-        setMessage("Xác thực với hệ thống thất bại. Vui lòng thử lại.");
-        return;
+        setMessage(err.message || "Xác thực với hệ thống thất bại. Vui lòng thử lại.");
       }
-
-      setAuth(authData);
-      navigate("/home", { replace: true });
     };
 
     void handleCallback();

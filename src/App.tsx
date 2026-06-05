@@ -39,16 +39,21 @@ export default function App() {
     let isMounted = true;
 
     const syncCurrentSession = async () => {
-      const { data } = await supabase.auth.getSession();
+      try {
+        const { data } = await supabase.auth.getSession();
 
-      if (!isMounted || !data.session?.user) {
-        return;
-      }
+        if (!isMounted || !data.session?.user) {
+          return;
+        }
 
-      const authData = await verifySessionWithBackend();
-      if (isMounted) {
-        setAuth(authData);
-        if (!authData.isAuthenticated) {
+        const authData = await verifySessionWithBackend();
+        if (isMounted) {
+          setAuth(authData);
+        }
+      } catch (error) {
+        console.error(error);
+        if (isMounted) {
+          setAuth({ user: null, isAuthenticated: false });
           storage.clearAuth();
         }
       }
@@ -62,14 +67,19 @@ export default function App() {
       }
 
       if (session?.user) {
-        void verifySessionWithBackend().then((authData) => {
-          if (isMounted) {
-            setAuth(authData);
-            if (!authData.isAuthenticated) {
+        verifySessionWithBackend()
+          .then((authData) => {
+            if (isMounted) {
+              setAuth(authData);
+            }
+          })
+          .catch((error) => {
+            console.error(error);
+            if (isMounted) {
+              setAuth({ user: null, isAuthenticated: false });
               storage.clearAuth();
             }
-          }
-        });
+          });
         return;
       }
 
