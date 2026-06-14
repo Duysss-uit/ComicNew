@@ -10,6 +10,7 @@ import { Story, Chapter } from "../types";
 import { ChevronLeft, ChevronRight, Menu, Share2, Heart, MessageSquare, Settings, Bookmark } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
+import { fetchStory } from "../lib/api";
 
 export default function ReaderPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,27 +19,31 @@ export default function ReaderPage() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    const allStories = storage.getStories();
-    const found = allStories.find(s => s.id === id);
-    if (found) {
-      setStory(found);
-      setCurrentChapter(found.chapters[0]);
-
-      // Update history
-      const auth = storage.getAuth();
-      if (auth.isAuthenticated && auth.user) {
-        const history = auth.user.readingHistory.filter(h => h.storyId !== found.id);
-        const newHistory = [
-            { storyId: found.id, chapterId: found.chapters[0].id, lastReadAt: new Date().toISOString() },
-            ...history
-        ].slice(0, 20);
-        
-        const users = storage.getUsers();
-        const updatedUsers = users.map(u => u.id === auth.user!.id ? { ...u, readingHistory: newHistory } : u);
-        storage.saveUsers(updatedUsers);
-        storage.saveAuth({ ...auth, user: { ...auth.user, readingHistory: newHistory } });
+    if (!id) return;
+    const loadStory = async () => {
+      const found = await fetchStory(id);
+      if (found) {
+        setStory(found);
+        if (found.chapters.length > 0) {
+          setCurrentChapter(found.chapters[0]);
+          
+          const auth = storage.getAuth();
+          if (auth.isAuthenticated && auth.user) {
+            const history = auth.user.readingHistory.filter(h => h.storyId !== found.id);
+            const newHistory = [
+              { storyId: found.id, chapterId: found.chapters[0].id, lastReadAt: new Date().toISOString() },
+              ...history
+            ].slice(0, 20);
+            
+            const users = storage.getUsers();
+            const updatedUsers = users.map(u => u.id === auth.user!.id ? { ...u, readingHistory: newHistory } : u);
+            storage.saveUsers(updatedUsers);
+            storage.saveAuth({ ...auth, user: { ...auth.user, readingHistory: newHistory } });
+          }
+        }
       }
-    }
+    };
+    void loadStory();
   }, [id]);
 
   if (!story || !currentChapter) {

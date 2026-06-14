@@ -10,6 +10,7 @@ import { storage } from "../lib/storage";
 import { useDropzone, DropzoneOptions } from "react-dropzone";
 import { Upload, FileText, Image as ImageIcon, X, Check } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { uploadStory, uploadChapter } from "../lib/api";
 
 interface UploadPageProps {
   user: User;
@@ -37,44 +38,50 @@ export default function UploadPage({ user }: UploadPageProps) {
     if (!title || !description || files.length === 0) return;
 
     setIsUploading(true);
-    
-    // Simulate upload delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
 
-    const newStory: Story = {
-      id: Math.random().toString(36).substr(2, 9),
-      title,
-      authorId: user.id,
-      authorName: user.name,
-      type,
-      coverUrl: cover ? URL.createObjectURL(cover) : "https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=1976&auto=format&fit=crop",
-      description,
-      tags: ["New", "User-Uploaded"],
-      chapters: [
-        { 
-          id: "c-initial", 
-          title: "Chương 1", 
-          content: files.map(f => URL.createObjectURL(f)), 
-          createdAt: new Date().toISOString() 
-        }
-      ],
-      views: 0,
-      rating: 0,
-      status: "ongoing",
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      const storyFormData = new FormData();
+      storyFormData.append("Title", title);
+      storyFormData.append("Description", description);
+      storyFormData.append("Type", type === "comic" ? "Comic" : "Novel");
+      storyFormData.append("Status", "Ongoing");
+      storyFormData.append("Tags", "New");
+      storyFormData.append("Tags", "User-Uploaded");
+      if (cover) {
+        storyFormData.append("coverFile", cover);
+      }
 
-    const stories = storage.getStories();
-    storage.saveStories([...stories, newStory]);
+      const newStory = await uploadStory(storyFormData);
 
-    // Update user
-    const users = storage.getUsers();
-    const updatedUsers = users.map(u => u.id === user.id ? { ...u, publishedStories: [...u.publishedStories, newStory.id] } : u);
-    storage.saveUsers(updatedUsers);
+      const chapterFormData = new FormData();
+      chapterFormData.append("Title", "Chương 1");
+      chapterFormData.append("ChapterNumber", "1");
+      chapterFormData.append("StoryId", newStory.id);
+      files.forEach((file) => {
+        chapterFormData.append("files", file);
+      });
 
-    setIsUploading(false);
-    navigate(`/story/${newStory.id}`);
+      await uploadChapter(newStory.id, chapterFormData, newStory.type);
+
+      const auth = storage.getAuth();
+      if (auth.isAuthenticated && auth.user) {
+        const updatedUser = {
+          ...auth.user,
+          publishedStories: [...(auth.user.publishedStories || []), newStory.id]
+        };
+        const users = storage.getUsers();
+        const updatedUsers = users.map(u => u.id === auth.user!.id ? updatedUser : u);
+        storage.saveUsers(updatedUsers);
+        storage.saveAuth({ ...auth, user: updatedUser });
+      }
+
+      setIsUploading(false);
+      navigate(`/story/${newStory.id}`);
+    } catch (err: any) {
+      console.error(err);
+      alert(err.message || "Đăng tác phẩm thất bại. Vui lòng thử lại.");
+      setIsUploading(false);
+    }
   };
 
   return (

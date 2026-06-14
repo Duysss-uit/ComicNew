@@ -8,6 +8,7 @@ import { User, Story } from "../types";
 import { storage } from "../lib/storage";
 import { BookMarked, Layers, Settings, History } from "lucide-react";
 import StoryCard from "../components/common/StoryCard";
+import { fetchStories } from "../lib/api";
 
 interface ProfilePageProps {
   user: User;
@@ -19,11 +20,14 @@ export default function ProfilePage({ user }: ProfilePageProps) {
   const [readingHistory, setReadingHistory] = useState<Story[]>([]);
 
   useEffect(() => {
-    const allStories = storage.getStories();
-    setUserStories(allStories.filter(s => user.publishedStories.includes(s.id)));
-    
-    const historyIds = user.readingHistory.map(h => h.storyId);
-    setReadingHistory(allStories.filter(s => historyIds.includes(s.id)));
+    const loadUserStories = async () => {
+      const allStories = await fetchStories();
+      setUserStories(allStories.filter(s => s.authorId === user.id || (user.publishedStories && user.publishedStories.includes(s.id))));
+      
+      const historyIds = user.readingHistory.map(h => h.storyId);
+      setReadingHistory(allStories.filter(s => historyIds.includes(s.id)));
+    };
+    void loadUserStories();
   }, [user]);
 
   return (

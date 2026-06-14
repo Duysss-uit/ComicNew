@@ -9,6 +9,7 @@ import { storage } from "../lib/storage";
 import { Story } from "../types";
 import { Star, TrendingUp, Sparkles, History as HistoryIcon } from "lucide-react";
 import StoryCard from "../components/common/StoryCard";
+import { fetchStories } from "../lib/api";
 
 export default function HomePage() {
   const [stories, setStories] = useState<Story[]>([]);
@@ -16,14 +17,17 @@ export default function HomePage() {
   const auth = storage.getAuth();
 
   useEffect(() => {
-    const allStories = storage.getStories();
-    setStories(allStories);
+    const loadStories = async () => {
+      const allStories = await fetchStories();
+      setStories(allStories);
 
-    if (auth.isAuthenticated && auth.user) {
-      const historyIds = auth.user.readingHistory.map(h => h.storyId);
-      setReadingHistory(allStories.filter(s => historyIds.includes(s.id)));
-    }
-  }, []);
+      if (auth.isAuthenticated && auth.user) {
+        const historyIds = auth.user.readingHistory.map(h => h.storyId);
+        setReadingHistory(allStories.filter(s => historyIds.includes(s.id)));
+      }
+    };
+    void loadStories();
+  }, [auth.isAuthenticated, auth.user]);
 
   const popularStories = [...stories].sort((a, b) => b.views - a.views).slice(0, 4);
   const recommendedStories = stories.slice(0, 6);
