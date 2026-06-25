@@ -1,58 +1,75 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
 import React, { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { storage } from "../lib/storage";
 import { Story, Chapter } from "../types";
-import { ChevronLeft, ChevronRight, Menu, Share2, Heart, MessageSquare, Settings, Bookmark } from "lucide-react";
+import { ChevronLeft, ChevronRight, Menu, Share2, Heart, MessageSquare, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
-import { fetchStory } from "../lib/api";
 
 export default function ReaderPage() {
-  const { id } = useParams<{ id: string }>();
+  const { id, chapterId } = useParams<{ id: string; chapterId: string }>();
+  const navigate = useNavigate();
   const [story, setStory] = useState<Story | null>(null);
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
-    if (!id) return;
-    const loadStory = async () => {
-      const found = await fetchStory(id);
-      if (found) {
-        setStory(found);
-        if (found.chapters.length > 0) {
-          setCurrentChapter(found.chapters[0]);
-          
-          const auth = storage.getAuth();
-          if (auth.isAuthenticated && auth.user) {
-            const history = auth.user.readingHistory.filter(h => h.storyId !== found.id);
-            const newHistory = [
-              { storyId: found.id, chapterId: found.chapters[0].id, lastReadAt: new Date().toISOString() },
-              ...history
-            ].slice(0, 20);
-            
-            const users = storage.getUsers();
-            const updatedUsers = users.map(u => u.id === auth.user!.id ? { ...u, readingHistory: newHistory } : u);
-            storage.saveUsers(updatedUsers);
-            storage.saveAuth({ ...auth, user: { ...auth.user, readingHistory: newHistory } });
-          }
-        }
+    const allStories = storage.getStories();
+    const found = allStories.find(s => s.id === id);
+    if (found) {
+      setStory(found);
+      
+      // If chapterId is specified, find it. Otherwise, default to first chapter.
+      const targetChapter = found.chapters.find(c => c.id === chapterId) || found.chapters[0];
+      setCurrentChapter(targetChapter);
+
+      // Update history
+      const auth = storage.getAuth();
+      if (auth.isAuthenticated && auth.user && targetChapter) {
+        const history = auth.user.readingHistory.filter(h => h.storyId !== found.id);
+        const newHistory = [
+            { storyId: found.id, chapterId: targetChapter.id, lastReadAt: new Date().toISOString() },
+            ...history
+        ].slice(0, 20);
+        
+        const users = storage.getUsers();
+        const updatedUsers = users.map(u => u.id === auth.user!.id ? { ...u, readingHistory: newHistory } : u);
+        storage.saveUsers(updatedUsers);
+        storage.saveAuth({ ...auth, user: { ...auth.user, readingHistory: newHistory } });
       }
-    };
-    void loadStory();
-  }, [id]);
+    }
+  }, [id, chapterId]);
 
   if (!story || !currentChapter) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-sm uppercase font-bold tracking-widest opacity-40">Đang tải...</p>
+      <div className="min-h-screen flex items-center justify-center bg-obsidian">
+        <p className="text-sm uppercase font-black tracking-widest text-accent animate-pulse">
+          Đang tải chương truyện...
+        </p>
       </div>
     );
   }
+
+  // Calculate index for navigation
+  const currentChapterIndex = story.chapters.findIndex(c => c.id === currentChapter.id);
+  const hasPrev = currentChapterIndex > 0;
+  const hasNext = currentChapterIndex < story.chapters.length - 1;
+
+  const handlePrev = () => {
+    if (hasPrev) {
+      const prevCh = story.chapters[currentChapterIndex - 1];
+      navigate(`/story/${story.id}/chapter/${prevCh.id}`);
+      window.scrollTo(0, 0);
+    }
+  };
+
+  const handleNext = () => {
+    if (hasNext) {
+      const nextCh = story.chapters[currentChapterIndex + 1];
+      navigate(`/story/${story.id}/chapter/${nextCh.id}`);
+      window.scrollTo(0, 0);
+    }
+  };
 
   return (
     <div className="relative min-h-screen bg-obsidian text-ghost">
@@ -62,15 +79,22 @@ export default function ReaderPage() {
           <button 
             onClick={() => setIsSidebarOpen(true)} 
             className="p-2 hover:bg-white/10 rounded-full text-ghost transition-colors"
+            title="Mục lục"
           >
             <Menu className="w-5 h-5" />
           </button>
-          <div className="hidden sm:block">
-            <span className="text-[10px] font-black uppercase tracking-[0.4em] text-accent italic mr-4">READING // </span>
-            <span className="text-xs font-black italic uppercase tracking-tighter">{story.title}</span>
-            <span className="text-xs font-black italic uppercase tracking-tighter opacity-40 mx-2">/</span>
-            <span className="text-xs font-black italic uppercase tracking-tighter text-accent">{currentChapter.title}</span>
-          </div>
+          
+          <Link 
+            to={`/story/${story.id}`}
+            className="group flex items-center gap-2 text-xs text-ghost hover:text-accent transition-colors"
+            title="Về trang chi tiết"
+          >
+            <ArrowLeft className="w-4 h-4 text-ghost/40 group-hover:text-accent transition-transform group-hover:-translate-x-0.5" />
+            <span className="hidden sm:inline font-black uppercase tracking-[0.4em] text-accent italic">READING // </span>
+            <span className="font-black italic uppercase tracking-tighter truncate max-w-[120px] sm:max-w-[200px]">{story.title}</span>
+            <span className="font-black italic uppercase tracking-tighter opacity-40">/</span>
+            <span className="font-black italic uppercase tracking-tighter text-accent">{currentChapter.title}</span>
+          </Link>
         </div>
 
         <div className="flex items-center gap-8">
@@ -100,7 +124,7 @@ export default function ReaderPage() {
                     className="w-full h-auto border border-white/5 shadow-2xl transition-transform group-hover:scale-[1.01]"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute top-4 right-4 text-[8px] font-black text-white/20 uppercase tracking-widest">PAGE_{i + 1}</div>
+                  <div className="absolute top-4 right-4 text-[8px] font-black text-white/20 uppercase tracking-widest bg-obsidian/60 px-2 py-1 rounded-xs backdrop-blur-xs">PAGE_{i + 1}</div>
                 </div>
               ))}
             </div>
@@ -124,10 +148,29 @@ export default function ReaderPage() {
 
         {/* Chapter Navigation */}
         <div className="py-20 border-t border-white/10 flex justify-between items-center mb-32">
-          <button className="flex items-center gap-4 px-10 py-5 bg-white/5 border border-white/10 rounded-sm text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-obsidian transition-all italic">
+          <button 
+            onClick={handlePrev}
+            disabled={!hasPrev}
+            className={cn(
+              "flex items-center gap-4 px-10 py-5 border rounded-sm text-[10px] font-black uppercase tracking-widest transition-all italic",
+              hasPrev 
+                ? "bg-white/5 border-white/10 text-ghost hover:bg-white hover:text-obsidian" 
+                : "opacity-20 border-white/5 text-ghost/20 cursor-not-allowed"
+            )}
+          >
             <ChevronLeft className="w-5 h-5" /> PREV_CHAPTER
           </button>
-          <button className="flex items-center gap-4 px-10 py-5 bg-accent text-obsidian rounded-sm text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-transform italic">
+          
+          <button 
+            onClick={handleNext}
+            disabled={!hasNext}
+            className={cn(
+              "flex items-center gap-4 px-10 py-5 rounded-sm text-[10px] font-black uppercase tracking-widest transition-all italic",
+              hasNext 
+                ? "bg-accent text-obsidian border-accent hover:scale-105" 
+                : "bg-white/5 border-white/5 text-ghost/20 cursor-not-allowed"
+            )}
+          >
             NEXT_CHAPTER <ChevronRight className="w-5 h-5 stroke-[3]" />
           </button>
         </div>
@@ -164,7 +207,7 @@ export default function ReaderPage() {
                       <button 
                           key={ch.id}
                           onClick={() => {
-                            setCurrentChapter(ch);
+                            navigate(`/story/${story.id}/chapter/${ch.id}`);
                             setIsSidebarOpen(false);
                             window.scrollTo(0, 0);
                           }}

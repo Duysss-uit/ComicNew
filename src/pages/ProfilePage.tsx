@@ -4,6 +4,7 @@
  */
 
 import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { User, Story } from "../types";
 import { storage } from "../lib/storage";
 import { BookMarked, Layers, Settings, History } from "lucide-react";
@@ -98,7 +99,17 @@ export default function ProfilePage({ user }: ProfilePageProps) {
         {activeTab === 'uploads' && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
              {userStories.length > 0 ? (
-              userStories.map(story => <StoryCard key={story.id} story={story} />)
+              userStories.map(story => (
+                <div key={story.id} className="flex flex-col">
+                  <StoryCard story={story} />
+                  <Link 
+                    to={`/edit-story/${story.id}`}
+                    className="mt-3 py-2.5 bg-white/5 border border-white/10 hover:border-accent/50 hover:text-accent text-[9px] font-black uppercase tracking-widest text-center text-ghost/70 rounded-sm transition-all"
+                  >
+                    CHỈNH SỬA
+                  </Link>
+                </div>
+              ))
             ) : (
               <div className="col-span-full py-32 text-center opacity-20 uppercase font-black text-xs tracking-[0.5em] italic">
                 BẠN CHƯA ĐĂNG TÁC PHẨM NÀO // EMPTY_STATE
