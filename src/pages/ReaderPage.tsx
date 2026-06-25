@@ -17,7 +17,11 @@ export default function ReaderPage() {
   useEffect(() => {
     const loadStory = async () => {
       if (!id) return;
-      const found = await fetchStory(id);
+      let found = await fetchStory(id);
+      if (!found) {
+        const allStories = storage.getStories();
+        found = allStories.find((s) => s.id === id) || null;
+      }
       if (found) {
         setStory(found);
         
