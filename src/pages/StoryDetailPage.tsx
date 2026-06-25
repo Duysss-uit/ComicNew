@@ -10,6 +10,7 @@ import { Story } from "../types";
 import { Eye, Star, BookOpen, Clock, Edit3, ArrowLeft, Play } from "lucide-react";
 import { motion } from "motion/react";
 import { cn, formatDate } from "../lib/utils";
+import { fetchStory } from "../lib/api";
 
 export default function StoryDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,11 +19,14 @@ export default function StoryDetailPage() {
   const auth = storage.getAuth();
 
   useEffect(() => {
-    const allStories = storage.getStories();
-    const found = allStories.find((s) => s.id === id);
-    if (found) {
-      setStory(found);
-    }
+    const loadStory = async () => {
+      if (!id) return;
+      const found = await fetchStory(id);
+      if (found) {
+        setStory(found);
+      }
+    };
+    void loadStory();
   }, [id]);
 
   if (!story) {

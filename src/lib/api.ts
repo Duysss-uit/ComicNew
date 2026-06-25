@@ -124,6 +124,7 @@ export function mapBackendChapterToChapter(bc: BackendChapter, storyType: StoryT
     title: bc.Title,
     content: content,
     createdAt: bc.PublishedAt || new Date().toISOString(),
+    chapterNumber: bc.ChapterNumber,
   };
 }
 
@@ -173,4 +174,10 @@ export async function uploadChapter(storyId: string, formData: FormData, storyTy
     body: formData,
   });
   return mapBackendChapterToChapter(bc, storyType);
+}
+
+export async function deleteChapter(storyId: string, chapterId: string): Promise<void> {
+  await apiJson<void>(`/api/stories/${storyId}/chapters/${chapterId}`, {
+    method: "DELETE",
+  });
 }

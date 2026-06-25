@@ -10,6 +10,7 @@ export interface Chapter {
   title: string;
   content: string[]; // URLs for images or paragraphs for novels
   createdAt: string;
+  chapterNumber?: number;
 }
 
 export interface Story {
@@ -38,6 +39,7 @@ export interface User {
     storyId: string;
     chapterId: string;
     lastReadAt: string;
+    chapterNumber?: number;
   }[];
   publishedStories: string[]; // Story IDs
 }

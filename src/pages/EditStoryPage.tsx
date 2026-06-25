@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "../lib/utils";
+import { fetchStory, uploadChapter, deleteChapter } from "../lib/api";
 
 const STANDARD_TAGS = [
   "Action", "Fantasy", "Adventure", "Romance", 
@@ -38,6 +39,7 @@ export default function EditStoryPage() {
   // New chapter states
   const [newChapterTitle, setNewChapterTitle] = useState("");
   const [newChapterContent, setNewChapterContent] = useState<string[]>([]);
+  const [chapterFiles, setChapterFiles] = useState<File[]>([]);
   const [novelParagraphs, setNovelParagraphs] = useState("");
   const [isUploadingChapter, setIsUploadingChapter] = useState(false);
 
@@ -47,29 +49,30 @@ export default function EditStoryPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    // Authenticate
     if (!auth.isAuthenticated || !auth.user) {
       navigate("/auth");
       return;
     }
 
-    const allStories = storage.getStories();
-    const found = allStories.find((s) => s.id === id);
-    if (found) {
-      // Check author authorization
-      if (found.authorId !== auth.user.id) {
+    const loadStory = async () => {
+      if (!id) return;
+      const found = await fetchStory(id);
+      if (found) {
+        if (found.authorId !== auth.user.id) {
+          navigate("/home");
+          return;
+        }
+        setStory(found);
+        setTitle(found.title);
+        setDescription(found.description);
+        setStatus(found.status);
+        setTags(found.tags);
+        setCoverUrl(found.coverUrl);
+      } else {
         navigate("/home");
-        return;
       }
-      setStory(found);
-      setTitle(found.title);
-      setDescription(found.description);
-      setStatus(found.status);
-      setTags(found.tags);
-      setCoverUrl(found.coverUrl);
-    } else {
-      navigate("/home");
-    }
+    };
+    void loadStory();
   }, [id, navigate]);
 
   if (!story) {
@@ -106,101 +109,92 @@ export default function EditStoryPage() {
     }
   };
 
-  // Manga page file uploads
   const handleComicPagesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
-      setIsUploadingChapter(true);
-      const filesArray = Array.from(e.target.files) as File[];
-      const loadedPages: string[] = [];
-      let loadedCount = 0;
-
-      filesArray.forEach((file, index) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          if (typeof reader.result === "string") {
-            loadedPages[index] = reader.result;
-          }
-          loadedCount++;
-          if (loadedCount === filesArray.length) {
-            // Filter out empty items just in case
-            const cleanPages = loadedPages.filter(Boolean);
-            setNewChapterContent((prev) => [...prev, ...cleanPages]);
-            setIsUploadingChapter(false);
-          }
-        };
-        reader.readAsDataURL(file);
-      });
+      const filesArray = Array.from(e.target.files);
+      setChapterFiles((prev) => [...prev, ...filesArray]);
+      const previews = filesArray.map(f => URL.createObjectURL(f));
+      setNewChapterContent((prev) => [...prev, ...previews]);
     }
   };
 
-  // Add Chapter process
-  const handleAddChapter = (e: React.FormEvent) => {
+  const handleAddChapter = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     if (!newChapterTitle.trim()) {
       setError("Vui lòng điền tiêu đề chương mới.");
       return;
     }
 
-    let finalContent: string[] = [];
-    if (story.type === "novel") {
-      if (!novelParagraphs.trim()) {
-        setError("Vui lòng nhập nội dung tiểu thuyết.");
-        return;
+    setIsUploadingChapter(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("Title", newChapterTitle.trim());
+      const nextNumber = story.chapters.length + 1;
+      formData.append("ChapterNumber", nextNumber.toString());
+      formData.append("StoryId", story.id);
+
+      if (story.type === "novel") {
+        if (!novelParagraphs.trim()) {
+          setError("Vui lòng nhập nội dung tiểu thuyết.");
+          setIsUploadingChapter(false);
+          return;
+        }
+        const blob = new Blob([novelParagraphs], { type: "text/plain" });
+        const file = new File([blob], "content.txt", { type: "text/plain" });
+        formData.append("files", file);
+      } else {
+        if (chapterFiles.length === 0) {
+          setError("Vui lòng tải lên ít nhất 1 trang truyện tranh.");
+          setIsUploadingChapter(false);
+          return;
+        }
+        chapterFiles.forEach((file) => {
+          formData.append("files", file);
+        });
       }
-      // Split text by line break or empty line to create array of paragraphs
-      finalContent = novelParagraphs
-        .split("\n")
-        .map((p) => p.trim())
-        .filter((p) => p.length > 0);
-    } else {
-      if (newChapterContent.length === 0) {
-        setError("Vui lòng tải lên ít nhất 1 trang truyện tranh.");
-        return;
-      }
-      finalContent = newChapterContent;
+
+      const newChapter = await uploadChapter(story.id, formData, story.type);
+
+      const updatedStory = {
+        ...story,
+        chapters: [...story.chapters, newChapter],
+        updatedAt: new Date().toISOString()
+      };
+      setStory(updatedStory);
+
+      setNewChapterTitle("");
+      setNewChapterContent([]);
+      setChapterFiles([]);
+      setNovelParagraphs("");
+      setSuccess("Thêm chương mới thành công!");
+      setTimeout(() => setSuccess(""), 4000);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Không thể tải lên chương mới.");
+    } finally {
+      setIsUploadingChapter(false);
     }
-
-    const newChapter: Chapter = {
-      id: "ch_" + Date.now(),
-      title: newChapterTitle.trim(),
-      content: finalContent,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedChapters = [...story.chapters, newChapter];
-    const updatedStory = { ...story, chapters: updatedChapters, updatedAt: new Date().toISOString() };
-
-    setStory(updatedStory);
-    
-    // Save to storage immediately to update chapters state
-    const allStories = storage.getStories();
-    const newStoriesList = allStories.map((s) => (s.id === story.id ? updatedStory : s));
-    storage.saveStories(newStoriesList);
-
-    // Reset fields
-    setNewChapterTitle("");
-    setNewChapterContent([]);
-    setNovelParagraphs("");
-    setSuccess("Thêm chương mới thành công!");
-    setTimeout(() => setSuccess(""), 4000);
   };
 
-  // Delete Chapter process
-  const handleDeleteChapter = (chapterId: string) => {
+  const handleDeleteChapter = async (chapterId: string) => {
     if (window.confirm("Bạn có chắc chắn muốn xóa chương này? Hành động này không thể hoàn tác.")) {
-      const updatedChapters = story.chapters.filter((c) => c.id !== chapterId);
-      const updatedStory = { ...story, chapters: updatedChapters, updatedAt: new Date().toISOString() };
-
-      setStory(updatedStory);
-      
-      const allStories = storage.getStories();
-      const newStoriesList = allStories.map((s) => (s.id === story.id ? updatedStory : s));
-      storage.saveStories(newStoriesList);
-
-      setSuccess("Đã xóa chương thành công!");
-      setTimeout(() => setSuccess(""), 4000);
+      try {
+        await deleteChapter(story.id, chapterId);
+        const updatedChapters = story.chapters.filter((c) => c.id !== chapterId);
+        setStory({
+          ...story,
+          chapters: updatedChapters
+        });
+        setSuccess("Đã xóa chương thành công!");
+        setTimeout(() => setSuccess(""), 4000);
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Xóa chương thất bại.");
+      }
     }
   };
 
@@ -520,7 +514,7 @@ export default function EditStoryPage() {
                         <span>Đã tải {newChapterContent.length} trang</span>
                         <button 
                           type="button" 
-                          onClick={() => setNewChapterContent([])}
+                          onClick={() => { setNewChapterContent([]); setChapterFiles([]); }}
                           className="text-accent hover:underline"
                         >
                           Xóa tất cả
