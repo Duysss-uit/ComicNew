@@ -26,7 +26,7 @@ export function mapSupabaseUserToAppUser(supabaseUser: SupabaseUser): User {
   const users = storage.getUsers();
   const normalizedEmail = supabaseUser.email?.toLowerCase() ?? "";
   const existingUser = users.find(
-    (user) => user.id === supabaseUser.id || (normalizedEmail && user.email.toLowerCase() === normalizedEmail),
+    (user) => user.id === supabaseUser.id || (normalizedEmail && (user.email || "").toLowerCase() === normalizedEmail),
   );
 
   const mappedUser: User = {
@@ -80,7 +80,7 @@ export function mapBackendUserToAppUser(backendUser: BackendUser): User {
   const users = storage.getUsers();
   const normalizedEmail = (backendUser.Email ?? "").toLowerCase();
   const existingUser = users.find(
-    (user) => user.id === backendUser.UserId || (normalizedEmail && user.email.toLowerCase() === normalizedEmail),
+    (user) => user.id === backendUser.UserId || (normalizedEmail && (user.email || "").toLowerCase() === normalizedEmail),
   );
 
   const name =

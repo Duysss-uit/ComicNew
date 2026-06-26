@@ -63,7 +63,9 @@ export default function EditStoryPage() {
       }
       if (found) {
         const isMockStory = found.id === "1" || found.id === "2";
-        if (!isMockStory && found.authorId.toLowerCase() !== auth.user.id.toLowerCase()) {
+        const authorId = found.authorId || "";
+        const userId = auth.user?.id || "";
+        if (!isMockStory && authorId.toLowerCase() !== userId.toLowerCase()) {
           navigate("/home");
           return;
         }
