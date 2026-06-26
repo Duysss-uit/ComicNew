@@ -63,7 +63,15 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
         const isMockStory = found.id === "1" || found.id === "2";
         const authorId = found.authorId || "";
         const userId = user?.id || "";
+        console.log("EditStoryPage Auth Check:", {
+          storyId: found.id,
+          isMockStory,
+          authorId,
+          userId,
+          match: authorId.toLowerCase() === userId.toLowerCase()
+        });
         if (!isMockStory && authorId.toLowerCase() !== userId.toLowerCase()) {
+          console.warn("EditStoryPage: Redirecting to /home due to authorId/userId mismatch.");
           navigate("/home");
           return;
         }
@@ -74,6 +82,7 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
         setTags(found.tags);
         setCoverUrl(found.coverUrl);
       } else {
+        console.warn(`EditStoryPage: Story not found for id ${id}. Redirecting to /home.`);
         navigate("/home");
       }
     };
