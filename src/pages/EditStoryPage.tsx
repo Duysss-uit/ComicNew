@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { storage } from "../lib/storage";
-import { Story, Chapter } from "../types";
+import { Story, Chapter, User } from "../types";
 import { 
   ArrowLeft, Upload, Check, Trash2, Plus, 
   BookOpen, Layers, Info, FileText, Image as ImageIcon, Sparkles 
@@ -21,10 +21,13 @@ const STANDARD_TAGS = [
   "Shounen", "Noir", "Cyberpunk"
 ];
 
-export default function EditStoryPage() {
+interface EditStoryPageProps {
+  user: User;
+}
+
+export default function EditStoryPage({ user }: EditStoryPageProps) {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const auth = storage.getAuth();
 
   const [story, setStory] = useState<Story | null>(null);
   
@@ -49,11 +52,6 @@ export default function EditStoryPage() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    if (!auth.isAuthenticated || !auth.user) {
-      navigate("/auth");
-      return;
-    }
-
     const loadStory = async () => {
       if (!id) return;
       let found = await fetchStory(id);
@@ -64,7 +62,7 @@ export default function EditStoryPage() {
       if (found) {
         const isMockStory = found.id === "1" || found.id === "2";
         const authorId = found.authorId || "";
-        const userId = auth.user?.id || "";
+        const userId = user?.id || "";
         if (!isMockStory && authorId.toLowerCase() !== userId.toLowerCase()) {
           navigate("/home");
           return;
@@ -80,7 +78,7 @@ export default function EditStoryPage() {
       }
     };
     void loadStory();
-  }, [id, navigate]);
+  }, [id, navigate, user]);
 
   if (!story) {
     return (

@@ -117,7 +117,7 @@ export default function App() {
             <Route path="/story/:id/chapter/:chapterId" element={<ReaderPage />} />
             <Route 
               path="/edit-story/:id" 
-              element={auth.isAuthenticated ? <EditStoryPage /> : <Navigate to="/auth" />} 
+              element={auth.isAuthenticated ? <EditStoryPage user={auth.user!} /> : <Navigate to="/auth" />} 
             />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
