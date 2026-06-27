@@ -43,7 +43,7 @@ export default function StoryDetailPage() {
     );
   }
 
-  const isAuthor = auth.isAuthenticated && auth.user?.id === story.authorId;
+  const isAuthor = auth.isAuthenticated && (auth.user?.id === story.authorId || (auth.user?.publishedStories && auth.user.publishedStories.includes(story.id)));
   const hasChapters = story.chapters && story.chapters.length > 0;
   const firstChapterId = hasChapters ? story.chapters[0].id : null;
 

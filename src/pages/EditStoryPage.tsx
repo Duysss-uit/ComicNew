@@ -63,14 +63,15 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
         const isMockStory = found.id === "1" || found.id === "2";
         const authorId = found.authorId || "";
         const userId = user?.id || "";
+        const isUserPublished = user?.publishedStories?.includes(found.id) || false;
         console.log("EditStoryPage Auth Check:", {
           storyId: found.id,
           isMockStory,
           authorId,
           userId,
-          match: authorId.toLowerCase() === userId.toLowerCase()
+          match: authorId.toLowerCase() === userId.toLowerCase() || isUserPublished
         });
-        if (!isMockStory && authorId.toLowerCase() !== userId.toLowerCase()) {
+        if (!isMockStory && authorId.toLowerCase() !== userId.toLowerCase() && !isUserPublished) {
           console.warn("EditStoryPage: Redirecting to /home due to authorId/userId mismatch.");
           navigate("/home");
           return;
@@ -127,7 +128,7 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
     if (e.target.files && e.target.files.length > 0) {
       const filesArray = Array.from(e.target.files);
       setChapterFiles((prev) => [...prev, ...filesArray]);
-      const previews = filesArray.map(f => URL.createObjectURL(f));
+      const previews = filesArray.map((f: any) => URL.createObjectURL(f));
       setNewChapterContent((prev) => [...prev, ...previews]);
     }
   };
