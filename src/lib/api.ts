@@ -83,6 +83,11 @@ export interface BackendStory {
   LastChapterAt?: string;
   Type?: string;
   AuthorId: string;
+  Author?: {
+    Id: string;
+    FullName?: string;
+    AvatarUrl?: string;
+  };
 }
 
 export interface BackendChapter {
@@ -100,8 +105,8 @@ export function mapBackendStoryToStory(bs: BackendStory, chapters: Chapter[] = [
   return {
     id: bs.Id,
     title: bs.Title,
-    authorId: bs.AuthorId || (bs as any).UserId || (bs as any).userId || (bs as any).authorId || (bs as any).author_id || (bs as any).user_id || "",
-    authorName: "Tác giả",
+    authorId: bs.AuthorId || (bs as any).UserId || (bs as any).userId || (bs as any).authorId || (bs as any).author_id || (bs as any).user_id || bs.Author?.Id || "",
+    authorName: bs.Author?.FullName || "Tác giả",
     type: (bs.Type?.toLowerCase() === "novel" ? "novel" : "comic") as StoryType,
     coverUrl: bs.CoverUrl || "https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=1976&auto=format&fit=crop",
     description: bs.Description || "",
