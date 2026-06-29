@@ -164,6 +164,26 @@ export async function fetchStory(id: string): Promise<Story | null> {
     return null;
   }
 }
+export async function fetchStorybyAuthor(authorId: string): Promise<Story[]> {
+  try {
+    const backendStories = await apiJson<BackendStory[]>(`/api/stories/author/${authorId}`);
+    if (!backendStories) return [];
+    return backendStories.map(bs => mapBackendStoryToStory(bs));
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+export async function fetchUserReadingHistory(userId: string): Promise<Story[]> {
+  try {
+    const backendStories = await apiJson<BackendStory[]>(`api/user/reading-history/${userId}`);
+    if (!backendStories) return [];
+    return backendStories.map(bs => mapBackendStoryToStory(bs));
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
 
 export async function uploadStory(formData: FormData): Promise<Story> {
   const bs = await apiJson<BackendStory>("/api/stories", {
