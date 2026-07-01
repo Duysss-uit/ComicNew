@@ -22,42 +22,6 @@ function getAvatarUrl(user: SupabaseUser) {
   return metadata.avatar_url ?? metadata.picture ?? undefined;
 }
 
-export function mapSupabaseUserToAppUser(supabaseUser: SupabaseUser): User {
-  const users = storage.getUsers();
-  const normalizedEmail = supabaseUser.email?.toLowerCase() ?? "";
-  const existingUser = users.find(
-    (user) => user.id === supabaseUser.id || (normalizedEmail && (user.email || "").toLowerCase() === normalizedEmail),
-  );
-
-  const mappedUser: User = {
-    id: existingUser?.id ?? supabaseUser.id,
-    name: existingUser?.name ?? getDisplayName(supabaseUser),
-    email: supabaseUser.email ?? existingUser?.email ?? "",
-    avatarUrl: getAvatarUrl(supabaseUser) ?? existingUser?.avatarUrl,
-    readingHistory: existingUser?.readingHistory ?? [],
-    publishedStories: existingUser?.publishedStories ?? [],
-  };
-
-  const nextUsers = existingUser
-    ? users.map((user) => (user.id === existingUser.id ? mappedUser : user))
-    : [mappedUser, ...users];
-
-  storage.saveUsers(nextUsers);
-
-  return mappedUser;
-}
-
-export function syncAuthFromSession(session: Session | null): AuthState {
-  if (!session?.user) {
-    return { user: null, isAuthenticated: false };
-  }
-
-  return {
-    user: mapSupabaseUserToAppUser(session.user),
-    isAuthenticated: true,
-  };
-}
-
 function getClaimValue(claims: { Type: string; Value: string }[] | undefined, types: string[]): string | undefined {
   if (!claims) return undefined;
   for (const type of types) {
@@ -73,40 +37,20 @@ export interface BackendUser {
   UserId: string;
   Email: string | null;
   Role: string | null;
+  Name: string | null;
+  AvatarUrl: string | null;
   Claims: { Type: string; Value: string }[];
 }
 
 export function mapBackendUserToAppUser(backendUser: BackendUser): User {
-  const users = storage.getUsers();
-  const normalizedEmail = (backendUser.Email ?? "").toLowerCase();
-  const existingUser = users.find(
-    (user) => user.id === backendUser.UserId || (normalizedEmail && (user.email || "").toLowerCase() === normalizedEmail),
-  );
-
-  const name =
-    getClaimValue(backendUser.Claims, ["full_name", "name"]) ??
-    normalizedEmail.split("@")[0] ??
-    "User";
-  const avatarUrl =
-    getClaimValue(backendUser.Claims, ["avatar_url", "picture"]) ??
-    existingUser?.avatarUrl;
-
-  const mappedUser: User = {
-    id: existingUser?.id ?? backendUser.UserId,
-    name: existingUser?.name ?? name,
-    email: backendUser.Email ?? existingUser?.email ?? "",
-    avatarUrl,
-    readingHistory: existingUser?.readingHistory ?? [],
-    publishedStories: existingUser?.publishedStories ?? [],
+  return {
+    id: backendUser.UserId, 
+    name: backendUser.Name ?? "",
+    email: backendUser.Email ?? "",
+    avatarUrl: backendUser.AvatarUrl ?? undefined,
+    readingHistory: [],
+    publishedStories: [],
   };
-
-  const nextUsers = existingUser
-    ? users.map((user) => (user.id === existingUser.id ? mappedUser : user))
-    : [mappedUser, ...users];
-
-  storage.saveUsers(nextUsers);
-
-  return mappedUser;
 }
 
 export async function verifySessionWithBackend(): Promise<AuthState> {
