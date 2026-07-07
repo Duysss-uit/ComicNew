@@ -11,6 +11,7 @@ import { BookMarked, Layers, Settings, History } from "lucide-react";
 import StoryCard from "../components/common/StoryCard";
 import { fetchStory, fetchStorybyAuthor, fetchUserReadingHistory } from "../lib/api";
 import type { ReadingHistoryItem } from "../lib/api";
+import { getStoryChapterByProgress } from "../lib/utils";
 
 interface ProfilePageProps {
   user: User;
@@ -35,7 +36,7 @@ export default function ProfilePage({ user }: ProfilePageProps) {
   const handleContinueReading = async (item: ReadingHistoryItem) => {
     const story = await fetchStory(item.story.id);
     const targetStory = story ?? item.story;
-    const targetChapter = targetStory.chapters.find(chapter => chapter.chapterNumber === item.chapterNumber) || targetStory.chapters[0];
+    const targetChapter = getStoryChapterByProgress(targetStory, { chapterNumber: item.chapterNumber }) || targetStory.chapters[0];
 
     if (targetChapter) {
       navigate(`/story/${targetStory.id}/chapter/${targetChapter.id}`);

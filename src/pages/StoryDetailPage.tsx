@@ -9,7 +9,7 @@ import { storage } from "../lib/storage";
 import { Story } from "../types";
 import { Eye, Star, BookOpen, Clock, Edit3, ArrowLeft, Play } from "lucide-react";
 import { motion } from "motion/react";
-import { cn, formatDate } from "../lib/utils";
+import { cn, formatDate, getStoryChapterByProgress } from "../lib/utils";
 import { fetchStory } from "../lib/api";
 
 export default function StoryDetailPage() {
@@ -52,9 +52,7 @@ export default function StoryDetailPage() {
     ? auth.user.readingHistory.find((h) => h.storyId === story.id)
     : null;
 
-  const lastReadChapter = lastReadRecord && hasChapters
-    ? story.chapters.find((ch) => ch.id === lastReadRecord.chapterId)
-    : null;
+  const lastReadChapter = getStoryChapterByProgress(story, lastReadRecord);
 
   return (
     <div className="min-h-screen bg-obsidian text-ghost relative overflow-hidden pb-32">
