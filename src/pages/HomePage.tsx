@@ -15,19 +15,25 @@ export default function HomePage() {
   const [stories, setStories] = useState<Story[]>([]);
   const [readingHistory, setReadingHistory] = useState<Story[]>([]);
   const auth = storage.getAuth();
+  const authUserId = auth.user?.id ?? "";
+  const authHistoryKey = auth.user?.readingHistory.map(h => h.storyId).join("|") ?? "";
 
   useEffect(() => {
+    if (!auth.isAuthenticated) {
+      setReadingHistory([]);
+      return;
+    }
+
     const loadStories = async () => {
       const allStories = await fetchStories();
       setStories(allStories);
 
-      if (auth.isAuthenticated && auth.user) {
-        const historyIds = auth.user.readingHistory.map(h => h.storyId);
-        setReadingHistory(allStories.filter(s => historyIds.includes(s.id)));
-      }
+      const historyIds = new Set(auth.user?.readingHistory.map(h => h.storyId) ?? []);
+      setReadingHistory(allStories.filter(s => historyIds.has(s.id)));
     };
+
     void loadStories();
-  }, [auth.isAuthenticated, auth.user]);
+  }, [auth.isAuthenticated, authUserId, authHistoryKey]);
 
   const popularStories = [...stories].sort((a, b) => b.views - a.views).slice(0, 4);
   const recommendedStories = stories.slice(0, 6);

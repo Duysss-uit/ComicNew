@@ -2,6 +2,15 @@ import { Story, Chapter, StoryType } from "../types";
 import { getSupabaseClient } from "./supabase";
 
 const apiBaseUrl = import.meta.env.VITE_API_URL as string | undefined;
+const STORIES_CACHE_TTL_MS = 5 * 60 * 1000;
+
+interface StoriesCacheEntry {
+  data: Story[];
+  fetchedAt: number;
+  inFlight?: Promise<Story[]>;
+}
+
+const storiesCache = new Map<string, StoriesCacheEntry>();
 
 function buildApiUrl(path: string) {
   if (!apiBaseUrl) {
@@ -133,15 +142,49 @@ export function mapBackendChapterToChapter(bc: BackendChapter, storyType: StoryT
   };
 }
 
-export async function fetchStories(page = 1, pageSize = 50): Promise<Story[]> {
-  try {
-    const backendStories = await apiJson<BackendStory[]>(`/api/stories?page=${page}&pageSize=${pageSize}`);
-    if (!backendStories) return [];
-    return backendStories.map(bs => mapBackendStoryToStory(bs));
-  } catch (error) {
-    console.error(error);
-    return [];
+export async function fetchStories(page = 1, pageSize = 50, forceRefresh = false): Promise<Story[]> {
+  const cacheKey = `${page}:${pageSize}`;
+  const cached = storiesCache.get(cacheKey);
+  const now = Date.now();
+
+  if (cached && !forceRefresh && now - cached.fetchedAt < STORIES_CACHE_TTL_MS) {
+    return cached.data;
   }
+
+  if (cached?.inFlight && !forceRefresh) {
+    return cached.inFlight;
+  }
+
+  const request = (async () => {
+    try {
+      const backendStories = await apiJson<BackendStory[]>(`/api/stories?page=${page}&pageSize=${pageSize}`);
+      const stories = backendStories ? backendStories.map(bs => mapBackendStoryToStory(bs)) : [];
+      storiesCache.set(cacheKey, {
+        data: stories,
+        fetchedAt: Date.now(),
+      });
+      return stories;
+    } catch (error) {
+      console.error(error);
+      return cached?.data ?? [];
+    } finally {
+      const latest = storiesCache.get(cacheKey);
+      if (latest?.inFlight === request) {
+        storiesCache.set(cacheKey, {
+          data: latest.data,
+          fetchedAt: latest.fetchedAt,
+        });
+      }
+    }
+  })();
+
+  storiesCache.set(cacheKey, {
+    data: cached?.data ?? [],
+    fetchedAt: cached?.fetchedAt ?? 0,
+    inFlight: request,
+  });
+
+  return request;
 }
 
 export async function fetchStory(id: string): Promise<Story | null> {
