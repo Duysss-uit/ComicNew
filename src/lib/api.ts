@@ -174,9 +174,9 @@ export async function fetchStorybyAuthor(authorId: string): Promise<Story[]> {
     return [];
   }
 }
-export async function fetchUserReadingHistory(userId: string): Promise<Story[]> {
+export async function fetchUserReadingHistory(): Promise<Story[]> {
   try {
-    const backendStories = await apiJson<BackendStory[]>(`/api/user/reading-history/${userId}`);
+    const backendStories = await apiJson<BackendStory[]>(`/api/user/reading-history`);
     if (!backendStories) return [];
     return backendStories.map(bs => mapBackendStoryToStory(bs));
   } catch (error) {
@@ -184,7 +184,6 @@ export async function fetchUserReadingHistory(userId: string): Promise<Story[]> 
     return [];
   }
 }
-
 export interface AddReadingHistoryRequest {
   storyId: string;
   chapterId: string;
