@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { storage } from "../lib/storage";
 import { Story, Chapter } from "../types";
 import { ChevronLeft, ChevronRight, Menu, Share2, Heart, MessageSquare, ArrowLeft } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "../lib/utils";
-import { fetchStory } from "../lib/api";
+import { addReadingHistory, fetchStory } from "../lib/api";
 
 export default function ReaderPage() {
   const { id, chapterId } = useParams<{ id: string; chapterId: string }>();
@@ -13,6 +13,7 @@ export default function ReaderPage() {
   const [story, setStory] = useState<Story | null>(null);
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const lastSavedHistoryKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     const loadStory = async () => {
@@ -27,6 +28,22 @@ export default function ReaderPage() {
         
         const targetChapter = found.chapters.find(c => c.id === chapterId) || found.chapters[0];
         setCurrentChapter(targetChapter);
+
+        if (targetChapter) {
+          const historyKey = `${found.id}:${targetChapter.id}`;
+          if (lastSavedHistoryKeyRef.current !== historyKey) {
+            lastSavedHistoryKeyRef.current = historyKey;
+            const auth = storage.getAuth();
+
+            if (auth.isAuthenticated && auth.user) {
+              void addReadingHistory({
+                storyId: found.id,
+                chapterId: targetChapter.id,
+                chapterNumber: targetChapter.chapterNumber,
+              });
+            }
+          }
+        }
 
         const auth = storage.getAuth();
         if (auth.isAuthenticated && auth.user && targetChapter) {

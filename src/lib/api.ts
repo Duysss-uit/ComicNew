@@ -176,12 +176,36 @@ export async function fetchStorybyAuthor(authorId: string): Promise<Story[]> {
 }
 export async function fetchUserReadingHistory(userId: string): Promise<Story[]> {
   try {
-    const backendStories = await apiJson<BackendStory[]>(`api/user/reading-history/${userId}`);
+    const backendStories = await apiJson<BackendStory[]>(`/api/user/reading-history/${userId}`);
     if (!backendStories) return [];
     return backendStories.map(bs => mapBackendStoryToStory(bs));
   } catch (error) {
     console.error(error);
     return [];
+  }
+}
+
+export interface AddReadingHistoryRequest {
+  storyId: string;
+  chapterId: string;
+  chapterNumber?: number;
+}
+
+export async function addReadingHistory(payload: AddReadingHistoryRequest): Promise<boolean> {
+  try {
+    const response = await apiFetch("/api/user/reading-history", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error(error);
+    return false;
   }
 }
 
