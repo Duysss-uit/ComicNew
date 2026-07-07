@@ -4,13 +4,13 @@
  */
 
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { User, Story } from "../types";
 import { storage } from "../lib/storage";
 import { BookMarked, Layers, Settings, History } from "lucide-react";
 import StoryCard from "../components/common/StoryCard";
-import { fetchStorybyAuthor } from "../lib/api";
-import { fetchUserReadingHistory} from "../lib/api";
+import { fetchStory, fetchStorybyAuthor, fetchUserReadingHistory } from "../lib/api";
+import type { ReadingHistoryItem } from "../lib/api";
 
 interface ProfilePageProps {
   user: User;
@@ -19,7 +19,8 @@ interface ProfilePageProps {
 export default function ProfilePage({ user }: ProfilePageProps) {
   const [activeTab, setActiveTab] = useState<'history' | 'uploads' | 'settings'>('history');
   const [userStories, setUserStories] = useState<Story[]>([]);
-  const [readingHistory, setReadingHistory] = useState<Story[]>([]);
+  const [readingHistory, setReadingHistory] = useState<ReadingHistoryItem[]>([]);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadUserStories = async () => {
@@ -30,6 +31,19 @@ export default function ProfilePage({ user }: ProfilePageProps) {
     };
     void loadUserStories();
   }, [user]);
+
+  const handleContinueReading = async (item: ReadingHistoryItem) => {
+    const story = await fetchStory(item.story.id);
+    const targetStory = story ?? item.story;
+    const targetChapter = targetStory.chapters.find(chapter => chapter.chapterNumber === item.chapterNumber) || targetStory.chapters[0];
+
+    if (targetChapter) {
+      navigate(`/story/${targetStory.id}/chapter/${targetChapter.id}`);
+      return;
+    }
+
+    navigate(`/story/${targetStory.id}`);
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-12">
@@ -87,7 +101,14 @@ export default function ProfilePage({ user }: ProfilePageProps) {
         {activeTab === 'history' && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8">
             {readingHistory.length > 0 ? (
-              readingHistory.map(story => <StoryCard key={story.id} story={story} isCompact />)
+              readingHistory.map(item => (
+                <StoryCard
+                  key={item.story.id}
+                  story={item.story}
+                  isCompact
+                  onClick={() => { void handleContinueReading(item); }}
+                />
+              ))
             ) : (
               <div className="col-span-full py-32 text-center opacity-20 uppercase font-black text-xs tracking-[0.5em] italic">
                 BẠN CHƯA ĐỌC CÂU CHUYỆN NÀO // EMPTY_STATE

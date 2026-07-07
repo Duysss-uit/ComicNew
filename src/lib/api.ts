@@ -110,6 +110,19 @@ export interface BackendChapter {
   Content?: string | null;
 }
 
+export interface BackendReadingHistoryResponse {
+  UserId: string;
+  ChapterNumber: number;
+  LastReadAt: string;
+  Story: BackendStory;
+}
+
+export interface ReadingHistoryItem {
+  story: Story;
+  chapterNumber: number;
+  lastReadAt: string;
+}
+
 export function mapBackendStoryToStory(bs: BackendStory, chapters: Chapter[] = []): Story {
   return {
     id: bs.Id,
@@ -217,25 +230,16 @@ export async function fetchStorybyAuthor(authorId: string): Promise<Story[]> {
     return [];
   }
 }
-export async function fetchUserReadingHistory(): Promise<Story[]> {
+export async function fetchUserReadingHistory(): Promise<ReadingHistoryItem[]> {
   try {
-    const historyEntries = await apiJson<{ userId: string; storyId: string; chapterNumber: number }[]>(`/api/user/reading-history`);
+    const historyEntries = await apiJson<BackendReadingHistoryResponse[]>(`/api/user/reading-history`);
     if (!historyEntries) return [];
 
-    const stories = await Promise.all(
-      historyEntries.map(async (entry) => {
-        try {
-          const bs = await apiJson<BackendStory>(`/api/stories/${entry.storyId}`);
-          if (!bs) return null;
-          return mapBackendStoryToStory(bs);
-        } catch (err) {
-          console.error(err);
-          return null;
-        }
-      })
-    );
-
-    return stories.filter((story): story is Story => story !== null);
+    return historyEntries.map(entry => ({
+      story: mapBackendStoryToStory(entry.Story),
+      chapterNumber: entry.ChapterNumber,
+      lastReadAt: entry.LastReadAt,
+    }));
   } catch (error) {
     console.error(error);
     return [];

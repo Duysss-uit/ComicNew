@@ -14,15 +14,12 @@ interface StoryCardProps {
   isCompact?: boolean;
   showRank?: boolean;
   key?: React.Key;
+  onClick?: () => void;
 }
 
-export default function StoryCard({ story, isCompact, showRank }: StoryCardProps) {
-  return (
-    <Link 
-      to={`/story/${story.id}`}
-      className="group relative"
-      id={`story-${story.id}`}
-    >
+export default function StoryCard({ story, isCompact, showRank, onClick }: StoryCardProps) {
+  const content = (
+    <>
       <div className="relative aspect-[3/4] overflow-hidden rounded-sm bg-white/5 mb-4 border border-white/10 group-hover:border-accent/50 transition-colors">
         <img 
           src={story.coverUrl} 
@@ -58,6 +55,29 @@ export default function StoryCard({ story, isCompact, showRank }: StoryCardProps
           BY {story.authorName}
         </p>
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className="group relative w-full text-left"
+        id={`story-${story.id}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <Link 
+      to={`/story/${story.id}`}
+      className="group relative"
+      id={`story-${story.id}`}
+    >
+      {content}
     </Link>
   );
 }
