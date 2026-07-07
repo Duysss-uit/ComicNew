@@ -25,7 +25,7 @@ export default function ProfilePage({ user }: ProfilePageProps) {
     const loadUserStories = async () => {
       const userStories = await fetchStorybyAuthor(user.id);
       setUserStories(userStories);
-      const readingHistory = await fetchUserReadingHistory(user.id);
+      const readingHistory = await fetchUserReadingHistory();
       setReadingHistory(readingHistory);
     };
     void loadUserStories();

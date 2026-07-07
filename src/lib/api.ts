@@ -176,9 +176,23 @@ export async function fetchStorybyAuthor(authorId: string): Promise<Story[]> {
 }
 export async function fetchUserReadingHistory(): Promise<Story[]> {
   try {
-    const backendStories = await apiJson<BackendStory[]>(`/api/user/reading-history`);
-    if (!backendStories) return [];
-    return backendStories.map(bs => mapBackendStoryToStory(bs));
+    const historyEntries = await apiJson<{ userId: string; storyId: string; chapterNumber: number }[]>(`/api/user/reading-history`);
+    if (!historyEntries) return [];
+
+    const stories = await Promise.all(
+      historyEntries.map(async (entry) => {
+        try {
+          const bs = await apiJson<BackendStory>(`/api/stories/${entry.storyId}`);
+          if (!bs) return null;
+          return mapBackendStoryToStory(bs);
+        } catch (err) {
+          console.error(err);
+          return null;
+        }
+      })
+    );
+
+    return stories.filter((story): story is Story => story !== null);
   } catch (error) {
     console.error(error);
     return [];
