@@ -13,8 +13,7 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "../lib/utils";
-import { fetchStory, uploadChapter, deleteChapter } from "../lib/api";
-import { STORY_TAG_OPTIONS } from "../lib/tags";
+import { BackendTag, fetchStory, fetchTags, uploadChapter, deleteChapter } from "../lib/api";
 
 interface EditStoryPageProps {
   user: User;
@@ -25,6 +24,7 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
   const navigate = useNavigate();
 
   const [story, setStory] = useState<Story | null>(null);
+  const [tagOptions, setTagOptions] = useState<BackendTag[]>([]);
   
   // Form states
   const [title, setTitle] = useState("");
@@ -84,6 +84,15 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
     };
     void loadStory();
   }, [id, navigate, user]);
+
+  useEffect(() => {
+    const loadTags = async () => {
+      const backendTags = await fetchTags();
+      setTagOptions(backendTags);
+    };
+
+    void loadTags();
+  }, []);
 
   if (!story) {
     return (
@@ -345,13 +354,13 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
               <div>
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] block mb-4 text-ghost/30 italic">THỂ LOẠI // TAGS</label>
                 <div className="flex flex-wrap gap-2.5">
-                  {STORY_TAG_OPTIONS.map((tag) => {
-                    const active = tags.includes(tag);
+                  {tagOptions.map((tag) => {
+                    const active = tags.includes(tag.Name);
                     return (
                       <button
-                        key={tag}
+                        key={tag.Id}
                         type="button"
-                        onClick={() => toggleTag(tag)}
+                        onClick={() => toggleTag(tag.Name)}
                         className={cn(
                           "px-3.5 py-1.5 rounded-sm text-[9px] font-black uppercase tracking-wider border transition-all",
                           active
@@ -359,7 +368,7 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
                             : "bg-white/5 border-white/10 text-ghost/40 hover:border-white/20"
                         )}
                       >
-                        {tag}
+                        {tag.Name}
                       </button>
                     );
                   })}

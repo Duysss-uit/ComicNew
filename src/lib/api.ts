@@ -85,7 +85,7 @@ export interface BackendStory {
   Title: string;
   Description?: string;
   CoverUrl?: string;
-  Tags?: string[];
+  Tags?: Array<string | BackendTag>;
   Status?: string;
   Views?: number;
   Rating?: number;
@@ -97,6 +97,12 @@ export interface BackendStory {
     FullName?: string;
     AvatarUrl?: string;
   };
+}
+
+export interface BackendTag {
+  Id: string;
+  Name: string;
+  Slug?: string;
 }
 
 export interface BackendChapter {
@@ -123,7 +129,23 @@ export interface ReadingHistoryItem {
   lastReadAt: string;
 }
 
+export async function fetchTags(): Promise<BackendTag[]> {
+  try {
+    const tags = await apiJson<BackendTag[]>("/api/tags");
+    return tags || [];
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+}
+
 export function mapBackendStoryToStory(bs: BackendStory, chapters: Chapter[] = []): Story {
+  const tags = Array.isArray(bs.Tags)
+    ? bs.Tags
+        .map((tag) => (typeof tag === "string" ? tag : tag.Name))
+        .filter((tag): tag is string => Boolean(tag))
+    : [];
+
   return {
     id: bs.Id,
     title: bs.Title,
@@ -132,7 +154,7 @@ export function mapBackendStoryToStory(bs: BackendStory, chapters: Chapter[] = [
     type: (bs.Type?.toLowerCase() === "novel" ? "novel" : "comic") as StoryType,
     coverUrl: bs.CoverUrl || "https://images.unsplash.com/photo-1541963463532-d68292c34b19?q=80&w=1976&auto=format&fit=crop",
     description: bs.Description || "",
-    tags: bs.Tags || [],
+    tags,
     chapters: chapters,
     views: bs.Views || 0,
     rating: bs.Rating || 0,

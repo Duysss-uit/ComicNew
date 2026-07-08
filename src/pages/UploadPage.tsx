@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { User, StoryType } from "../types";
 import { storage } from "../lib/storage";
 import { useDropzone } from "react-dropzone";
 import { Upload, FileText, Image as ImageIcon, X, Check } from "lucide-react";
-import { uploadStory, uploadChapter } from "../lib/api";
-import { STORY_TAG_OPTIONS } from "../lib/tags";
+import { fetchTags, uploadStory, uploadChapter, BackendTag } from "../lib/api";
 
 interface UploadPageProps {
   user: User;
@@ -21,10 +20,20 @@ export default function UploadPage({ user }: UploadPageProps) {
   const [type, setType] = useState<StoryType>("comic");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  const [tagOptions, setTagOptions] = useState<BackendTag[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [cover, setCover] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    const loadTags = async () => {
+      const backendTags = await fetchTags();
+      setTagOptions(backendTags);
+    };
+
+    void loadTags();
+  }, []);
 
   // @ts-ignore
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -35,10 +44,10 @@ export default function UploadPage({ user }: UploadPageProps) {
   });
 
   const toggleTag = (tag: string) => {
-    setTags((currentTags) =>
-      currentTags.includes(tag)
-        ? currentTags.filter((currentTag) => currentTag !== tag)
-        : [...currentTags, tag]
+    setSelectedTagIds((currentTagIds) =>
+      currentTagIds.includes(tag)
+        ? currentTagIds.filter((currentTagId) => currentTagId !== tag)
+        : [...currentTagIds, tag]
     );
   };
 
@@ -54,7 +63,7 @@ export default function UploadPage({ user }: UploadPageProps) {
       storyFormData.append("Description", description);
       storyFormData.append("Type", type === "comic" ? "Comic" : "Novel");
       storyFormData.append("Status", "Ongoing");
-      tags.forEach((tag) => storyFormData.append("Tags", tag));
+      selectedTagIds.forEach((tagId) => storyFormData.append("TagIds", tagId));
       if (cover) {
         storyFormData.append("coverFile", cover);
       }
@@ -177,21 +186,21 @@ export default function UploadPage({ user }: UploadPageProps) {
             <div>
               <label className="text-[10px] font-black uppercase tracking-[0.2em] block mb-6 text-ghost/30 italic">THỂ LOẠI // TAGS</label>
               <div className="flex flex-wrap gap-2.5">
-                {STORY_TAG_OPTIONS.map((tag) => {
-                  const active = tags.includes(tag);
+                {tagOptions.map((tag) => {
+                  const active = selectedTagIds.includes(tag.Id);
 
                   return (
                     <button
-                      key={tag}
+                      key={tag.Id}
                       type="button"
-                      onClick={() => toggleTag(tag)}
+                      onClick={() => toggleTag(tag.Id)}
                       className={`px-3.5 py-1.5 rounded-sm text-[9px] font-black uppercase tracking-wider border transition-all ${
                         active
                           ? "bg-white text-obsidian border-white"
                           : "bg-white/5 border-white/10 text-ghost/40 hover:border-white/20"
                       }`}
                     >
-                      {tag}
+                      {tag.Name}
                     </button>
                   );
                 })}
