@@ -5,12 +5,12 @@
 
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { User, Story, StoryType } from "../types";
+import { User, StoryType } from "../types";
 import { storage } from "../lib/storage";
-import { useDropzone, DropzoneOptions } from "react-dropzone";
+import { useDropzone } from "react-dropzone";
 import { Upload, FileText, Image as ImageIcon, X, Check } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
 import { uploadStory, uploadChapter } from "../lib/api";
+import { STORY_TAG_OPTIONS } from "../lib/tags";
 
 interface UploadPageProps {
   user: User;
@@ -21,6 +21,7 @@ export default function UploadPage({ user }: UploadPageProps) {
   const [type, setType] = useState<StoryType>("comic");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [files, setFiles] = useState<File[]>([]);
   const [cover, setCover] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -32,6 +33,14 @@ export default function UploadPage({ user }: UploadPageProps) {
       ? { "image/*": [], "application/pdf": [] } 
       : { "application/pdf": [], "application/msword": [], "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [] })
   });
+
+  const toggleTag = (tag: string) => {
+    setTags((currentTags) =>
+      currentTags.includes(tag)
+        ? currentTags.filter((currentTag) => currentTag !== tag)
+        : [...currentTags, tag]
+    );
+  };
 
   const handleUpload = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,8 +54,7 @@ export default function UploadPage({ user }: UploadPageProps) {
       storyFormData.append("Description", description);
       storyFormData.append("Type", type === "comic" ? "Comic" : "Novel");
       storyFormData.append("Status", "Ongoing");
-      storyFormData.append("Tags", "New");
-      storyFormData.append("Tags", "User-Uploaded");
+      tags.forEach((tag) => storyFormData.append("Tags", tag));
       if (cover) {
         storyFormData.append("coverFile", cover);
       }
@@ -164,6 +172,30 @@ export default function UploadPage({ user }: UploadPageProps) {
                 placeholder="MỘT VÀI DÒNG VỀ CÂU CHUYỆN CỦA BẠN..."
                 className="w-full bg-white/5 border border-white/10 p-5 text-ghost text-xs rounded-sm focus:border-accent outline-none h-40 resize-none font-medium placeholder:text-ghost/20 leading-relaxed"
               />
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] block mb-6 text-ghost/30 italic">THỂ LOẠI // TAGS</label>
+              <div className="flex flex-wrap gap-2.5">
+                {STORY_TAG_OPTIONS.map((tag) => {
+                  const active = tags.includes(tag);
+
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTag(tag)}
+                      className={`px-3.5 py-1.5 rounded-sm text-[9px] font-black uppercase tracking-wider border transition-all ${
+                        active
+                          ? "bg-white text-obsidian border-white"
+                          : "bg-white/5 border-white/10 text-ghost/40 hover:border-white/20"
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>

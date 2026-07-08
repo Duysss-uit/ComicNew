@@ -14,12 +14,7 @@ import {
 import { motion } from "motion/react";
 import { cn } from "../lib/utils";
 import { fetchStory, uploadChapter, deleteChapter } from "../lib/api";
-
-const STANDARD_TAGS = [
-  "Action", "Fantasy", "Adventure", "Romance", 
-  "Drama", "Comedy", "Sci-Fi", "Horror", "Martial Arts", 
-  "Shounen", "Noir", "Cyberpunk"
-];
+import { STORY_TAG_OPTIONS } from "../lib/tags";
 
 interface EditStoryPageProps {
   user: User;
@@ -350,7 +345,7 @@ export default function EditStoryPage({ user }: EditStoryPageProps) {
               <div>
                 <label className="text-[10px] font-black uppercase tracking-[0.2em] block mb-4 text-ghost/30 italic">THỂ LOẠI // TAGS</label>
                 <div className="flex flex-wrap gap-2.5">
-                  {STANDARD_TAGS.map((tag) => {
+                  {STORY_TAG_OPTIONS.map((tag) => {
                     const active = tags.includes(tag);
                     return (
                       <button
