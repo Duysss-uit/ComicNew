@@ -4,7 +4,7 @@
  */
 
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Story } from "../../types";
 import { Star, Eye } from "lucide-react";
 import { cn } from "../../lib/utils";
@@ -18,6 +18,26 @@ interface StoryCardProps {
 }
 
 export default function StoryCard({ story, isCompact, showRank, onClick }: StoryCardProps) {
+  const navigate = useNavigate();
+
+  const authorPath = `/author/${encodeURIComponent(story.authorId || story.authorName)}`;
+
+  const handleCardClick = () => {
+    if (onClick) {
+      onClick();
+      return;
+    }
+
+    navigate(`/story/${story.id}`);
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      handleCardClick();
+    }
+  };
+
   const content = (
     <>
       <div className="relative aspect-[3/4] overflow-hidden rounded-sm bg-white/5 mb-4 border border-white/10 group-hover:border-accent/50 transition-colors">
@@ -51,33 +71,28 @@ export default function StoryCard({ story, isCompact, showRank, onClick }: Story
         )}>
           {story.title}
         </h3>
-        <p className="text-[8px] text-ghost/40 uppercase font-bold tracking-widest mt-1">
+        <Link
+          to={authorPath}
+          onClick={(event) => event.stopPropagation()}
+          className="text-[8px] text-ghost/40 uppercase font-bold tracking-widest mt-1 inline-block hover:text-accent transition-colors"
+          aria-label={`Xem trang tác giả ${story.authorName}`}
+        >
           BY {story.authorName}
-        </p>
+        </Link>
       </div>
     </>
   );
 
-  if (onClick) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        className="group relative w-full text-left"
-        id={`story-${story.id}`}
-      >
-        {content}
-      </button>
-    );
-  }
-
   return (
-    <Link 
-      to={`/story/${story.id}`}
-      className="group relative"
+    <div
+      onClick={handleCardClick}
+      onKeyDown={handleKeyDown}
+      className="group relative w-full text-left cursor-pointer"
       id={`story-${story.id}`}
+      role="link"
+      tabIndex={0}
     >
       {content}
-    </Link>
+    </div>
   );
 }

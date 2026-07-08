@@ -21,6 +21,8 @@ import UploadPage from "./pages/UploadPage";
 import ReaderPage from "./pages/ReaderPage";
 import StoryDetailPage from "./pages/StoryDetailPage";
 import EditStoryPage from "./pages/EditStoryPage";
+import AuthorPage from "./pages/AuthorPage";
+import TagPage from "./pages/TagPage";
 
 // Components
 import Navbar from "./components/layout/Navbar";
@@ -114,6 +116,8 @@ export default function App() {
               element={auth.isAuthenticated ? <UploadPage user={auth.user!} /> : <Navigate to="/auth" />} 
             />
             <Route path="/story/:id" element={<StoryDetailPage />} />
+            <Route path="/author/:authorId" element={<AuthorPage />} />
+            <Route path="/tag/:tag" element={<TagPage />} />
             <Route path="/story/:id/chapter/:chapterId" element={<ReaderPage />} />
             <Route 
               path="/edit-story/:id" 

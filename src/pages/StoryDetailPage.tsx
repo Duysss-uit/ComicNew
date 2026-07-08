@@ -46,6 +46,7 @@ export default function StoryDetailPage() {
   const isAuthor = auth.isAuthenticated && (auth.user?.id === story.authorId || (auth.user?.publishedStories && auth.user.publishedStories.includes(story.id)));
   const hasChapters = story.chapters && story.chapters.length > 0;
   const firstChapterId = hasChapters ? story.chapters[0].id : null;
+  const authorPath = `/author/${encodeURIComponent(story.authorId || story.authorName)}`;
 
   // Find last read chapter
   const lastReadRecord = auth.isAuthenticated && auth.user
@@ -109,12 +110,14 @@ export default function StoryDetailPage() {
             {/* Tag pills */}
             <div className="flex flex-wrap gap-3">
               {story.tags.map((tag) => (
-                <span 
+                <Link
                   key={tag} 
+                  to={`/tag/${encodeURIComponent(tag)}`}
                   className="px-4 py-1.5 bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-ghost/60 rounded-full"
+                  aria-label={`Xem truyện theo tag ${tag}`}
                 >
                   {tag}
-                </span>
+                </Link>
               ))}
             </div>
 
@@ -123,9 +126,13 @@ export default function StoryDetailPage() {
               <h1 className="text-4xl md:text-6xl font-black italic uppercase tracking-tighter leading-none mb-4">
                 {story.title}<span className="text-accent">.</span>
               </h1>
-              <p className="text-xs font-black uppercase tracking-[0.3em] text-accent">
+              <Link
+                to={authorPath}
+                className="text-xs font-black uppercase tracking-[0.3em] text-accent hover:opacity-80 transition-opacity inline-flex"
+                aria-label={`Xem trang tác giả ${story.authorName}`}
+              >
                 TÁC GIẢ // {story.authorName}
-              </p>
+              </Link>
             </div>
 
             {/* Stat Row */}
