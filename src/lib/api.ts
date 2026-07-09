@@ -224,6 +224,18 @@ export async function fetchStories(page = 1, pageSize = 50, forceRefresh = false
   return request;
 }
 
+export async function searchStories(query: string, matchCount: number = 20): Promise<Story[]> {
+  try {
+    const encodedQuery = encodeURIComponent(query);
+    const backendStories = await apiJson<BackendStory[]>(`/api/stories/search?query=${encodedQuery}&matchCount=${matchCount}`);
+    if (!backendStories) return [];
+    return backendStories.map(bs => mapBackendStoryToStory(bs));
+  } catch (error) {
+    console.error("Lỗi khi tìm kiếm:", error);
+    return [];
+  }
+}
+
 export async function fetchStory(id: string): Promise<Story | null> {
   try {
     const bs = await apiJson<BackendStory>(`/api/stories/${id}`);

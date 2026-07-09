@@ -48,6 +48,14 @@ export default function Navbar({ auth, setAuth }: NavbarProps) {
               type="text" 
               placeholder="Tìm kiếm..." 
               className="bg-transparent border-none outline-none text-[10px] w-48 placeholder:text-ghost/30 text-ghost"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const query = e.currentTarget.value;
+                  if (query.trim()) {
+                    navigate(`/search?q=${encodeURIComponent(query)}`);
+                  }
+                }
+              }}
             />
           </div>
         </div>

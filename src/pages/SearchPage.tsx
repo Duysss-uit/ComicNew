@@ -9,14 +9,13 @@ import { Story } from "../types";
 import StoryCard from "../components/common/StoryCard";
 import { Search, Loader2, ArrowLeft, Frown } from "lucide-react";
 import { motion } from "motion/react";
-import { fetchStories } from "../lib/api";
+import { fetchStories, searchStories } from "../lib/api";
 
 export default function SearchPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
   
-  const [stories, setStories] = useState<Story[]>([]);
   const [filteredStories, setFilteredStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,20 +23,12 @@ export default function SearchPage() {
     async function fetchAndFilter() {
       setIsLoading(true);
       try {
-        const allStories = await fetchStories();
-        setStories(allStories);
-        
         if (query) {
-          const lowerQuery = query.toLowerCase();
-          const results = allStories.filter(
-            (s) =>
-              s.title.toLowerCase().includes(lowerQuery) ||
-              s.description.toLowerCase().includes(lowerQuery) ||
-              s.tags.some((t) => t.toLowerCase().includes(lowerQuery)) ||
-              s.authorName.toLowerCase().includes(lowerQuery)
-          );
+          const results = await searchStories(query, 20);
           setFilteredStories(results);
         } else {
+          // If no query, show some default stories
+          const allStories = await fetchStories();
           setFilteredStories(allStories);
         }
       } catch (err) {
