@@ -202,16 +202,18 @@ export async function fetchStories(page = 1, pageSize = 50, forceRefresh = false
     } catch (error) {
       console.error(error);
       return cached?.data ?? [];
-    } finally {
-      const latest = storiesCache.get(cacheKey);
-      if (latest?.inFlight === request) {
-        storiesCache.set(cacheKey, {
-          data: latest.data,
-          fetchedAt: latest.fetchedAt,
-        });
-      }
     }
   })();
+
+  request.finally(() => {
+    const latest = storiesCache.get(cacheKey);
+    if (latest?.inFlight === request) {
+      storiesCache.set(cacheKey, {
+        data: latest.data,
+        fetchedAt: latest.fetchedAt,
+      });
+    }
+  });
 
   storiesCache.set(cacheKey, {
     data: cached?.data ?? [],
