@@ -23,6 +23,7 @@ import StoryDetailPage from "./pages/StoryDetailPage";
 import EditStoryPage from "./pages/EditStoryPage";
 import AuthorPage from "./pages/AuthorPage";
 import TagPage from "./pages/TagPage";
+import SearchPage from "./pages/SearchPage";
 
 // Components
 import Navbar from "./components/layout/Navbar";
@@ -118,6 +119,7 @@ export default function App() {
             <Route path="/story/:id" element={<StoryDetailPage />} />
             <Route path="/author/:authorId" element={<AuthorPage />} />
             <Route path="/tag/:tag" element={<TagPage />} />
+            <Route path="/search" element={<SearchPage />} />
             <Route path="/story/:id/chapter/:chapterId" element={<ReaderPage />} />
             <Route 
               path="/edit-story/:id" 
